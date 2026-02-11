@@ -176,3 +176,123 @@ $(window).on('load', function() {
 	});
 
 })(jQuery);
+
+(function () {
+	var LANGUAGE_KEY = 'petrol-language';
+	var GOOGLE_COOKIE_KEY = 'googtrans';
+
+	var translations = {
+		pt: {
+			promptTitle: 'Escolha o idioma',
+			promptDescription: 'Como prefere navegar no site?',
+			english: 'Inglês',
+			portuguese: 'Português'
+		},
+		en: {
+			promptTitle: 'Choose your language',
+			promptDescription: 'How do you prefer to browse the website?',
+			english: 'English',
+			portuguese: 'Portuguese'
+		}
+	};
+
+	function setCookie(name, value, domain) {
+		var cookie = name + '=' + value + ';path=/';
+		if (domain) {
+			cookie += ';domain=' + domain;
+		}
+		document.cookie = cookie;
+	}
+
+	function applyLanguage(lang) {
+		var normalizedLanguage = lang === 'en' ? 'en' : 'pt';
+		var translateValue = '/pt/' + normalizedLanguage;
+
+		localStorage.setItem(LANGUAGE_KEY, normalizedLanguage);
+		setCookie(GOOGLE_COOKIE_KEY, translateValue);
+		setCookie(GOOGLE_COOKIE_KEY, translateValue, window.location.hostname);
+
+		document.documentElement.lang = normalizedLanguage;
+	}
+
+	function createLanguageModal() {
+		if (document.body.getAttribute('data-language-modal-ready') === 'true') {
+			return;
+		}
+
+		var modal = document.createElement('div');
+		modal.className = 'language-modal-overlay';
+		modal.innerHTML = '' +
+			'<div class="language-modal">' +
+				'<h3>' + translations.pt.promptTitle + '</h3>' +
+				'<p>' + translations.pt.promptDescription + '</p>' +
+				'<div class="language-options">' +
+					'<button type="button" class="language-option" data-language="en" aria-label="English">' +
+						'<span class="flag" aria-hidden="true">🇺🇸</span>' +
+						'<span>' + translations.pt.english + '</span>' +
+					'</button>' +
+					'<button type="button" class="language-option" data-language="pt" aria-label="Português">' +
+						'<span class="flag" aria-hidden="true">🇦🇴</span>' +
+						'<span>' + translations.pt.portuguese + '</span>' +
+					'</button>' +
+				'</div>' +
+			'</div>';
+
+		document.body.appendChild(modal);
+		document.body.setAttribute('data-language-modal-ready', 'true');
+
+		modal.addEventListener('click', function (event) {
+			var button = event.target.closest('.language-option');
+			if (!button) {
+				return;
+			}
+
+			applyLanguage(button.getAttribute('data-language'));
+			modal.remove();
+		});
+	}
+
+	window.googleTranslateElementInit = function () {
+		if (!document.getElementById('google_translate_element')) {
+			var hiddenContainer = document.createElement('div');
+			hiddenContainer.id = 'google_translate_element';
+			hiddenContainer.style.display = 'none';
+			document.body.appendChild(hiddenContainer);
+		}
+
+		if (window.google && window.google.translate && window.google.translate.TranslateElement) {
+			new window.google.translate.TranslateElement({
+				pageLanguage: 'pt',
+				autoDisplay: false
+			}, 'google_translate_element');
+		}
+	};
+
+	function loadGoogleTranslateScript() {
+		if (document.querySelector('script[data-google-translate="true"]')) {
+			return;
+		}
+
+		var script = document.createElement('script');
+		script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+		script.async = true;
+		script.defer = true;
+		script.dataset.googleTranslate = 'true';
+		document.body.appendChild(script);
+	}
+
+	document.addEventListener('DOMContentLoaded', function () {
+		var selectedLanguage = localStorage.getItem(LANGUAGE_KEY);
+
+		loadGoogleTranslateScript();
+
+		if (!selectedLanguage && window.location.pathname.match(/\/index\.html$|\/$/)) {
+			createLanguageModal();
+			return;
+		}
+
+		if (selectedLanguage) {
+			applyLanguage(selectedLanguage);
+		}
+	});
+})();
